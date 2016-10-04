@@ -59,7 +59,21 @@ window.addEventListener('DOMContentLoaded', function() {
 		}
 
 		if (force) {
-			carGame.car.ApplyForce(force, carGame.car.GetCenterPosition());
+			//loop all contact list to check if the driving wheel is on the ground
+			for (var cn = carGame.world.GetContactList(); cn != null; cn = cn.GetNext()) {
+				var body1 = cn.GetShape1().GetBody();
+				var body2 = cn.GetShape2().GetBody();
+
+
+				if ((body1 == carGame.drivingWheel && carGame.grounds.indexOf(body2) > -1) ||
+					(body2 == carGame.drivingWheel && carGame.grounds.indexOf(body1) > -1))
+				{
+					carGame.car.ApplyForce(force, carGame.car.GetCenterPosition());
+					break;
+				}
+			}
+
+
 		}
 	});
 
@@ -67,6 +81,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
 	function restartGame() {
 		carGame.world = createWorld();
+		carGame.grounds = [];
 		var currentLevel = carGame.levels[carGame.currentLevel],
 			currentObject;
 
@@ -74,7 +89,7 @@ window.addEventListener('DOMContentLoaded', function() {
 			currentObject = currentLevel[i];
 			switch (currentObject.type) {
 				case 'box':
-					createGround(currentObject.x, currentObject.y, currentObject.width, currentObject.height, currentObject.rotation);
+					carGame.grounds.push(createGround(currentObject.x, currentObject.y, currentObject.width, currentObject.height, currentObject.rotation));
 					break;
 				case 'win':
 					carGame.gamewinWall = createGround(currentObject.x, currentObject.y, currentObject.width, currentObject.height, currentObject.rotation, true);
@@ -183,14 +198,14 @@ window.addEventListener('DOMContentLoaded', function() {
 		var carBody = carGame.world.CreateBody(boxBd);
 
 		// create wheels
-		var wheelBody1 = createWheel(carGame.world, x - 26, y + 20);
+		carGame.drivingWheel = createWheel(carGame.world, x - 26, y + 20);
 		var wheelBody2 = createWheel(carGame.world, x + 35, y + 20);
 
 		// create a joint to connect left wheel with the car body
 		var jointDefLeft = new b2RevoluteJointDef();
 		jointDefLeft.anchorPoint.Set(x - 26, y + 20);
 		jointDefLeft.body1 = carBody;
-		jointDefLeft.body2 = wheelBody1;
+		jointDefLeft.body2 = carGame.drivingWheel;
 
 		carGame.world.CreateJoint(jointDefLeft);
 
